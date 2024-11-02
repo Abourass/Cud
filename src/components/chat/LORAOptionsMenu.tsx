@@ -5,27 +5,28 @@ import {
   Show,
   For,
 } from "solid-js";
-import type { ImageService } from "~/services/imageService";
-import type { LoRAOptions } from "~/types";
+import { useApp } from "~/context/AppContext";
 
 interface LORAOptionsMenuProps {
   isOpen: boolean;
-  selectedLoras: Map<string, LoRAOptions>;
-  imageService: ImageService;
   onClose: () => void;
-  onOptionsUpdate: (lora: string, options: LoRAOptions) => void;
 }
 
 export const LORAOptionsMenu: Component<LORAOptionsMenuProps> = (props) => {
+  const { imageStore } = useApp();
   const [activeTab, setActiveTab] = createSignal<string>(
-    Array.from(props.selectedLoras.keys())[0] || "",
+    Array.from(imageStore.state.loraOptions.keys())[0] || "",
   );
-  const loraKeys = () => Array.from(props.selectedLoras.keys());
+
+  const loraKeys = () => Array.from(imageStore.state.loraOptions.keys());
 
   const getCurrentOptions = () => {
     const currentLora = activeTab();
-    return currentLora ? props.selectedLoras.get(currentLora) || {} : {};
+    return currentLora
+      ? imageStore.state.loraOptions.get(currentLora) || {}
+      : {};
   };
+
   createEffect(() => {
     const selectedLoras = loraKeys();
     if (
@@ -45,10 +46,9 @@ export const LORAOptionsMenu: Component<LORAOptionsMenuProps> = (props) => {
       clip_strength: Number(formData.get("clip_strength")) || undefined,
       strength: Number(formData.get("strength")) || undefined,
       weight: Number(formData.get("weight")) || undefined,
-    } as LoRAOptions;
+    };
 
-    props.imageService.updateLoRAOptions(lora, options);
-    props.onOptionsUpdate(lora, options);
+    imageStore.updateLoraOptions(lora, options);
   };
 
   return (

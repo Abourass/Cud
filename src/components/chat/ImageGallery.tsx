@@ -1,27 +1,64 @@
-import { type Component, For, Show, createSignal } from "solid-js";
+import {
+  type Component,
+  For,
+  Show,
+  createEffect,
+  createSignal,
+  onCleanup,
+} from "solid-js";
 import { ImageModal } from "./ImageModal";
+import { useApp } from "~/context/AppContext";
 
-interface ImageGalleryProps {
-  images: Blob[];
-}
-
-export const ImageGallery: Component<ImageGalleryProps> = (props) => {
+export const ImageGallery: Component = () => {
+  const { imageStore } = useApp();
   const [selectedImage, setSelectedImage] = createSignal<string | null>(null);
   const [isOpen, setIsOpen] = createSignal(false);
+  const [imageUrls, setImageUrls] = createSignal<string[]>([]);
+
+  // Create and track URLs for blobs
+  const updateImageUrls = () => {
+    // Clean up old URLs
+    for (const url of imageUrls()) {
+      URL.revokeObjectURL(url);
+    }
+
+    // Create new URLs
+    const urls = imageStore.state.images.map((blob) =>
+      URL.createObjectURL(blob),
+    );
+    setImageUrls(urls);
+  };
+
+  // Update URLs when images change
+  createEffect(() => {
+    if (imageStore.state.images.length) {
+      setImageUrls(
+        imageStore.state.images.map((blob) => URL.createObjectURL(blob)),
+      );
+    }
+  });
+
+  // Cleanup URLs when component unmounts
+  onCleanup(() => {
+    for (const url of imageUrls()) {
+      URL.revokeObjectURL(url);
+    }
+  });
 
   return (
     <>
       <div class="relative w-full">
-        {/* Toggle Button - Always visible */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen())}
           class="absolute left-1/2 -translate-x-1/2
-            bg-sky-800 text-white px-4 py-1 gap-2 -mt-5
-            rounded-b-md
-            hover:bg-sky-700 transition-colors z-10 flex items-center"
+              bg-sky-800 text-white px-4 py-1 gap-2 -mt-5
+              rounded-b-md
+              hover:bg-sky-700 transition-colors z-10 flex items-center"
         >
-          Gallery {props.images.length > 0 && `(${props.images.length})`}
+          Gallery{" "}
+          {imageStore.state.images.length > 0 &&
+            `(${imageStore.state.images.length})`}
           <span
             class={`transform transition-transform ${isOpen() ? "rotate-180" : ""}`}
           >
@@ -29,18 +66,19 @@ export const ImageGallery: Component<ImageGalleryProps> = (props) => {
           </span>
         </button>
 
-        {/* Sliding Panel */}
+        {/* Key changes in the container div below */}
         <div
-          class={`w-full bg-slate-900 overflow-hidden transition-[height,opacity] duration-300 ease-in-out rounded-md
-            ${isOpen() ? "h-[200px] opacity-100" : "h-0 opacity-0"}`}
+          class={`w-full bg-slate-900 transition-all duration-300 ease-in-out rounded-md
+              ${isOpen() ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"}
+              overflow-hidden`}
         >
-          <Show when={props.images.length > 0}>
+          <Show when={imageStore.state.images.length > 0}>
             <div
-              class="flex overflow-x-auto gap-4 p-4 snap-x snap-mandatory h-full
-              scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent
-              hover:scrollbar-thumb-gray-500"
+              class="flex overflow-x-auto gap-4 px-4 snap-x snap-mandatory h-full
+                  scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent
+                  hover:scrollbar-thumb-gray-500"
             >
-              <For each={props.images}>
+              <For each={imageStore.state.images}>
                 {(blob, index) => {
                   const imageUrl = URL.createObjectURL(blob);
                   return (
@@ -62,11 +100,11 @@ export const ImageGallery: Component<ImageGalleryProps> = (props) => {
               </For>
             </div>
 
-            <Show when={props.images.length > 1}>
+            <Show when={imageStore.state.images.length > 1}>
               <button
                 type="button"
                 class="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2
-                  rounded-full hover:bg-opacity-75"
+                    rounded-full hover:bg-opacity-75"
                 onClick={() => {
                   const container = document.querySelector(".overflow-x-auto");
                   if (container) {
@@ -79,7 +117,7 @@ export const ImageGallery: Component<ImageGalleryProps> = (props) => {
               <button
                 type="button"
                 class="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2
-                  rounded-full hover:bg-opacity-75"
+                    rounded-full hover:bg-opacity-75"
                 onClick={() => {
                   const container = document.querySelector(".overflow-x-auto");
                   if (container) {

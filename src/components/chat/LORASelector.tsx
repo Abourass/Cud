@@ -8,17 +8,17 @@ import {
   Show,
   For,
 } from "solid-js";
-import type { ImageService } from "~/services/imageService";
+import { useApp } from "~/context/AppContext";
 
 interface LORASelectorProps {
-  imageService: ImageService;
   isLoading: boolean;
-  selectedLoras: Set<string>;
-  onLoraToggle: (lora: string) => void;
+  // selectedLoras: Set<string>;
+  // onLoraToggle: (lora: string) => void;
 }
 
 export const LORASelector: Component<LORASelectorProps> = (props) => {
-  const [loras] = createResource(() => props.imageService.getLoRAs());
+  const { imageStore } = useApp();
+  const [loras] = createResource(() => imageStore.getLoRAs());
   const [isDropdownOpen, setIsDropdownOpen] = createSignal(false);
 
   // Close dropdown when clicking outside
@@ -53,12 +53,12 @@ export const LORASelector: Component<LORASelectorProps> = (props) => {
         onClick={() => setIsDropdownOpen(!isDropdownOpen())}
         disabled={props.isLoading || loras.loading}
         class="bg-slate-800 text-white rounded-md px-4 py-2 flex items-center justify-between w-48
-            focus:outline-none focus:ring-2 focus:ring-sky-600 disabled:opacity-50"
+              focus:outline-none focus:ring-2 focus:ring-sky-600 disabled:opacity-50"
       >
         <span>
-          {props.selectedLoras.size === 0
+          {imageStore.state.selectedLoras.size === 0
             ? "Select LORAs"
-            : `Selected: ${props.selectedLoras.size}`}
+            : `Selected: ${imageStore.state.selectedLoras.size}`}
         </span>
         <span
           class={`transform transition-transform duration-200 ${
@@ -79,9 +79,11 @@ export const LORASelector: Component<LORASelectorProps> = (props) => {
               <button
                 type="button"
                 class="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2"
-                onClick={() => props.onLoraToggle(lora)}
+                onClick={() => imageStore.toggleLora(lora)}
               >
-                <span class="w-4">{props.selectedLoras.has(lora) && "✓"}</span>
+                <span class="w-4">
+                  {imageStore.state.selectedLoras.has(lora) && "✓"}
+                </span>
                 {lora}
               </button>
             )}

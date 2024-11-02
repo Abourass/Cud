@@ -1,7 +1,13 @@
+import type { createChatStore } from "~/stores/chatStore";
+import type { createImageStore } from "~/stores/imageStore";
+
 export interface ChatMessage {
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
 }
+
+export type ChatStore = ReturnType<typeof createChatStore>;
+export type ImageStore = ReturnType<typeof createImageStore>;
 
 export interface LoRAOptions {
   clip_strength?: number;

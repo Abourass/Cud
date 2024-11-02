@@ -2,25 +2,17 @@ import { Show, type Component } from "solid-js";
 import type { ImageService } from "~/services/imageService";
 import { LORAOptionsMenu } from "./LORAOptionsMenu";
 import type { LoRAOptions } from "~/types";
+import { useApp } from "~/context/AppContext";
 
-interface LORAOptionsMenuButtonProps {
-  isOpen: boolean;
-  onToggle: () => void;
-  imageService: ImageService;
-  selectedLoras: Set<string>;
-  loraOptions: Map<string, LoRAOptions>;
-  onOptionsUpdate: (lora: string, options: LoRAOptions) => void;
-}
+export const LORAOptionsMenuButton: Component = () => {
+  const { imageStore } = useApp();
 
-export const LORAOptionsMenuButton: Component<LORAOptionsMenuButtonProps> = (
-  props,
-) => {
   return (
-    <Show when={props.selectedLoras.size > 0}>
+    <Show when={imageStore.state.selectedLoras.size > 0}>
       <div class="flex items-start z-[100] fixed top-[14.5dvh] -right-9">
         <button
           type="button"
-          onClick={props.onToggle}
+          onClick={imageStore.toggleLoraOptions}
           class="transform -translate-x-12 rotate-90 origin-right
           bg-slate-800 text-white px-4 py-2 rounded-b-lg
           hover:bg-slate-700 transition-colors
@@ -29,7 +21,7 @@ export const LORAOptionsMenuButton: Component<LORAOptionsMenuButtonProps> = (
           LORAs
           <span
             class={`transform transition-transform duration-300 ${
-              props.isOpen ? "rotate-180" : ""
+              imageStore.state.showLoraOptions ? "rotate-180" : ""
             }`}
           >
             ▼
@@ -37,11 +29,8 @@ export const LORAOptionsMenuButton: Component<LORAOptionsMenuButtonProps> = (
         </button>
 
         <LORAOptionsMenu
-          isOpen={props.isOpen}
-          selectedLoras={props.loraOptions}
-          imageService={props.imageService}
-          onClose={props.onToggle}
-          onOptionsUpdate={props.onOptionsUpdate}
+          isOpen={imageStore.state.showLoraOptions}
+          onClose={imageStore.toggleLoraOptions}
         />
       </div>
     </Show>
