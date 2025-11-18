@@ -2,6 +2,7 @@ import { type Component, createSignal, For, Show } from "solid-js";
 import type { Message } from "../../types";
 import { ImageModal } from "./ImageModal";
 import { MessageSkeleton } from "./MessageSkeleton";
+import { ProgressIndicator } from "./ProgressIndicator";
 
 interface MessageListProps {
   messages: Message[];
@@ -35,7 +36,15 @@ export const MessageList: Component<MessageListProps> = (props) => {
           <For each={props.messages}>
             {(message) => (
               <li class={message.role === "USER" ? "ml-auto" : "mr-auto"}>
-                {message.type === "text" ? (
+                {message.isGenerating ? (
+                  <div class="my-2">
+                    <ProgressIndicator
+                      message={message.content}
+                      progress={message.progress}
+                      isIndeterminate={message.progress === undefined}
+                    />
+                  </div>
+                ) : message.type === "text" ? (
                   <p
                     class={`${
                       message.role === "USER"

@@ -1,9 +1,11 @@
 import { createStore } from "solid-js/store";
+import { createEffect, on } from "solid-js";
 import type { ChatMessage, ChatModels, Message } from "~/types";
 import type { ChatService } from "~/services/chatService";
 import type { ImageService } from "~/services/imageService";
 import type { ResourceManager } from "~/services/resourceManager";
 import type { createImageStore } from "./imageStore";
+import { StorageManager } from "~/utils/storageManager";
 
 interface ChatState {
   messages: Message[];
@@ -19,13 +21,49 @@ export function createChatStore(
   imageStore: ReturnType<typeof createImageStore>,
   resourceManager: ResourceManager,
 ) {
+  // Load persisted state from localStorage
+  const persistedState = StorageManager.loadState();
+
   const [state, setState] = createStore<ChatState>({
-    messages: [],
-    history: [],
-    currentModel: "Socrates",
+    messages: persistedState.messages || [],
+    history: persistedState.history || [],
+    currentModel: persistedState.currentModel || "Socrates",
     isLoading: false,
     error: null,
   });
+
+  // Auto-save messages to localStorage whenever they change
+  createEffect(
+    on(
+      () => state.messages,
+      (messages) => {
+        StorageManager.saveMessages(messages);
+      },
+      { defer: true },
+    ),
+  );
+
+  // Auto-save history to localStorage whenever it changes
+  createEffect(
+    on(
+      () => state.history,
+      (history) => {
+        StorageManager.saveHistory(history);
+      },
+      { defer: true },
+    ),
+  );
+
+  // Auto-save current model to localStorage whenever it changes
+  createEffect(
+    on(
+      () => state.currentModel,
+      (model) => {
+        StorageManager.saveCurrentModel(model);
+      },
+      { defer: true },
+    ),
+  );
 
   const handleError = (error: unknown) => {
     const message =
@@ -116,32 +154,64 @@ export function createChatStore(
         const params = JSON.parse(`{${fixedJson}}`);
 
         if (params.response_during_generation) {
-          // Update the message with the generation status
+          // Update the message with the generation status and mark as generating
           setState("messages", (messages) =>
             messages.map((msg, index) =>
               index === messages.length - 1
-                ? { ...msg, content: params.response_during_generation }
+                ? {
+                    ...msg,
+                    content: params.response_during_generation,
+                    isGenerating: true,
+                  }
                 : msg,
             ),
           );
         }
 
-        const imageBlobs = await imageService.generateImage(
-          params.prompt,
-          params.negative,
-          params.resolution,
-        );
+        try {
+          const imageBlobs = await imageService.generateImage(
+            params.prompt,
+            params.negative,
+            params.resolution,
+          );
 
-        if (imageBlobs) {
-          imageStore.addImages(imageBlobs);
+          if (imageBlobs) {
+            imageStore.addImages(imageBlobs);
 
-          // Create and track URLs using ResourceManager
-          const imageMessages = imageBlobs.map((blob) => {
-            const url = resourceManager.getOrCreateURL(blob);
-            return createMessage("ASSISTANT", "image", "", url);
-          });
+            // Clear the generating state from the progress message
+            setState("messages", (messages) =>
+              messages.map((msg, index) =>
+                index === messages.length - 1 && msg.isGenerating
+                  ? { ...msg, isGenerating: false }
+                  : msg,
+              ),
+            );
 
-          setState("messages", (messages) => [...messages, ...imageMessages]);
+            // Create and track URLs using ResourceManager
+            const imageMessages = imageBlobs.map((blob) => {
+              const url = resourceManager.getOrCreateURL(blob);
+              return createMessage("ASSISTANT", "image", "", url);
+            });
+
+            setState("messages", (messages) => [
+              ...messages,
+              ...imageMessages,
+            ]);
+          }
+        } catch (error) {
+          // Clear generating state on error
+          setState("messages", (messages) =>
+            messages.map((msg, index) =>
+              index === messages.length - 1 && msg.isGenerating
+                ? {
+                    ...msg,
+                    isGenerating: false,
+                    content: "Failed to generate image. Please try again.",
+                  }
+                : msg,
+            ),
+          );
+          throw error;
         }
       }
     }
@@ -183,6 +253,11 @@ export function createChatStore(
     sendMessage,
     setError: (error: string | null) => setState("error", error),
     setModel: (model: ChatModels) => setState("currentModel", model),
+    clearHistory: () => {
+      setState("messages", []);
+      setState("history", []);
+      StorageManager.clear();
+    },
     cleanup: () => {
       // URL cleanup is now handled by ResourceManager in Services.cleanup()
       // This method is kept for future cleanup needs (e.g., aborting requests)

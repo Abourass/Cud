@@ -35,6 +35,8 @@ export interface Message {
   content: string;
   type: "text" | "image";
   url?: string;
+  isGenerating?: boolean;
+  progress?: number;
 }
 
 export interface ImageGenerationParams {

@@ -10,6 +10,9 @@ import { LORASelector } from "~/components/chat/LORASelector";
 import { LORAOptionsMenuButton } from "~/components/chat/LORAOptionsMenuButton";
 import { Services } from "~/services/Services";
 import { useApp } from "~/context/AppContext";
+import { ChatErrorBoundary } from "~/components/boundaries/ChatErrorBoundary";
+import { ImageErrorBoundary } from "~/components/boundaries/ImageErrorBoundary";
+import { FeatureErrorBoundary } from "~/components/boundaries/FeatureErrorBoundary";
 
 interface ImageGenerationParams {
   prompt: string;
@@ -81,51 +84,60 @@ export default function Home() {
 
   return (
     <>
-      <LORAOptionsMenuButton />
+      <FeatureErrorBoundary featureName="LORA Options">
+        <LORAOptionsMenuButton />
+      </FeatureErrorBoundary>
+
       <main class="text-center mx-auto text-gray-700 p-4 flex flex-col h-[94dvh]">
-        <div class="flex-none relative">
-          <ImageGallery />
-        </div>
+        <ImageErrorBoundary onError={(err) => imageStore.setError(err.message)}>
+          <div class="flex-none relative">
+            <ImageGallery />
+          </div>
+        </ImageErrorBoundary>
 
-        <div class="flex-1 flex flex-col min-h-0 p-4">
-          <ErrorMessage
-            message={chatStore.state.error || imageStore.state.error}
-          />
-          <MessageList
-            messages={chatStore.state.messages}
-            selectBGColor={selectBGColor}
-            currentModel={chatStore.state.currentModel}
-          />
+        <ChatErrorBoundary onError={(err) => chatStore.setError(err.message)}>
+          <div class="flex-1 flex flex-col min-h-0 p-4">
+            <ErrorMessage
+              message={chatStore.state.error || imageStore.state.error}
+            />
+            <MessageList
+              messages={chatStore.state.messages}
+              selectBGColor={selectBGColor}
+              currentModel={chatStore.state.currentModel}
+            />
 
-          <section class="flex-none bg-slate-900 rounded-md p-4">
-            <ChatInput onSubmit={debouncedChat} isLoading={isLoading()} />
+            <section class="flex-none bg-slate-900 rounded-md p-4">
+              <ChatInput onSubmit={debouncedChat} isLoading={isLoading()} />
 
-            <div class="flex flex-row justify-between w-full">
-              <ModelSelector
-                currentModel={chatStore.state.currentModel}
-                onModelChange={chatStore.setModel}
-                isLoading={isLoading()}
-              />
+              <div class="flex flex-row justify-between w-full">
+                <ModelSelector
+                  currentModel={chatStore.state.currentModel}
+                  onModelChange={chatStore.setModel}
+                  isLoading={isLoading()}
+                />
 
-              <LORASelector isLoading={isLoading()} />
+                <FeatureErrorBoundary featureName="LORA Selector">
+                  <LORASelector isLoading={isLoading()} />
+                </FeatureErrorBoundary>
 
-              <button
-                type="button"
-                class="bg-sky-600 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-sky-600"
-                onClick={() => {
-                  const chatInput =
-                    document.querySelector<HTMLTextAreaElement>("#cud");
-                  if (chatInput) {
-                    debouncedChat(chatInput.value);
-                  }
-                }}
-                disabled={isLoading()}
-              >
-                {isLoading() ? "Processing..." : "Compile"}
-              </button>
-            </div>
-          </section>
-        </div>
+                <button
+                  type="button"
+                  class="bg-sky-600 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-sky-600"
+                  onClick={() => {
+                    const chatInput =
+                      document.querySelector<HTMLTextAreaElement>("#cud");
+                    if (chatInput) {
+                      debouncedChat(chatInput.value);
+                    }
+                  }}
+                  disabled={isLoading()}
+                >
+                  {isLoading() ? "Processing..." : "Compile"}
+                </button>
+              </div>
+            </section>
+          </div>
+        </ChatErrorBoundary>
       </main>
     </>
   );
