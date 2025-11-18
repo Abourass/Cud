@@ -1,41 +1,16 @@
-import {
-  type Component,
-  For,
-  Show,
-  createEffect,
-  createSignal,
-  onCleanup,
-} from "solid-js";
+import { type Component, For, Show, createMemo, createSignal } from "solid-js";
 import { ImageModal } from "./ImageModal";
 import { useApp } from "~/context/AppContext";
 
 export const ImageGallery: Component = () => {
-  const { imageStore } = useApp();
+  const { imageStore, resourceManager } = useApp();
   const [selectedImage, setSelectedImage] = createSignal<string | null>(null);
   const [isOpen, setIsOpen] = createSignal(false);
-  const [imageUrls, setImageUrls] = createSignal<string[]>([]);
 
-  // Update URLs when images change
-  createEffect(() => {
-    // Clean up old URLs first
-    const oldUrls = imageUrls();
-    for (const url of oldUrls) {
-      URL.revokeObjectURL(url);
-    }
-
-    // Create new URLs
-    const newUrls = imageStore.state.images.map((blob) =>
-      URL.createObjectURL(blob),
-    );
-    setImageUrls(newUrls);
-  });
-
-  // Cleanup URLs when component unmounts
-  onCleanup(() => {
-    for (const url of imageUrls()) {
-      URL.revokeObjectURL(url);
-    }
-  });
+  // Get or create URLs for all images using ResourceManager
+  const imageUrls = createMemo(() =>
+    resourceManager.getOrCreateURLs(imageStore.state.images),
+  );
 
   return (
     <>
