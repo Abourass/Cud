@@ -75,6 +75,20 @@ export class ImageService {
     });
   }
 
+  /**
+   * Check if ComfyUI is reachable
+   * Returns true if healthy, false otherwise
+   */
+  async checkHealth(): Promise<boolean> {
+    try {
+      await this.ensureConnection();
+      return this.isConnected;
+    } catch (error) {
+      consola.warn("ComfyUI health check failed:", error);
+      return false;
+    }
+  }
+
   private async ensureConnection() {
     if (!this.isConnected) {
       try {

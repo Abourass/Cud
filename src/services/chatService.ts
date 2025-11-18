@@ -1,10 +1,30 @@
 import type { ChatMessage } from "../types";
+import consola from "consola";
 
 export class ChatService {
   private apiUrl: string;
 
   constructor(apiUrl: string) {
     this.apiUrl = apiUrl;
+  }
+
+  /**
+   * Check if the Ollama API is reachable
+   * Returns true if healthy, false otherwise
+   */
+  async checkHealth(): Promise<boolean> {
+    try {
+      // Try to reach the Ollama API root endpoint
+      const baseUrl = this.apiUrl.replace("/api/chat", "");
+      const response = await fetch(baseUrl, {
+        method: "GET",
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      return response.ok;
+    } catch (error) {
+      consola.warn("Ollama API health check failed:", error);
+      return false;
+    }
   }
 
   async sendChat(message: string, model: string, history: ChatMessage[]) {
