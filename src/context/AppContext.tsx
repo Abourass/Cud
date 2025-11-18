@@ -13,21 +13,25 @@ interface AppContextValue {
   services: Services;
   chatStore: ChatStore;
   imageStore: ImageStore;
+  resourceManager: ReturnType<Services["getResourceManager"]>;
 }
 
 const AppContext = createContext<AppContextValue>();
 
 export const AppProvider: ParentComponent = (props) => {
   const services = Services.getInstance();
+  const resourceManager = services.getResourceManager();
 
   const imageStore = createImageStore(services.getImageService());
 
   const stores = {
     services,
+    resourceManager,
     chatStore: createChatStore(
       services.getChatService(),
       services.getImageService(),
       imageStore,
+      resourceManager,
     ),
     imageStore,
   };

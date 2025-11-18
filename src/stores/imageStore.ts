@@ -99,9 +99,8 @@ export function createImageStore(imageService: ImageService) {
     },
     cleanup: () => {
       imageService.cleanup();
-      for (const blob of state.images) {
-        URL.revokeObjectURL(URL.createObjectURL(blob));
-      }
+      // Note: URL cleanup is handled by components that create the URLs
+      // (ImageGallery, MessageList) to prevent creating/revoking wrong URLs
     },
   };
 }

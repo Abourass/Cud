@@ -2,6 +2,7 @@ import { createStore } from "solid-js/store";
 import type { ChatMessage, ChatModels, Message } from "~/types";
 import type { ChatService } from "~/services/chatService";
 import type { ImageService } from "~/services/imageService";
+import type { ResourceManager } from "~/services/resourceManager";
 import type { createImageStore } from "./imageStore";
 
 interface ChatState {
@@ -16,6 +17,7 @@ export function createChatStore(
   chatService: ChatService,
   imageService: ImageService,
   imageStore: ReturnType<typeof createImageStore>,
+  resourceManager: ResourceManager,
 ) {
   const [state, setState] = createStore<ChatState>({
     messages: [],
@@ -133,17 +135,13 @@ export function createChatStore(
         if (imageBlobs) {
           imageStore.addImages(imageBlobs);
 
-          setState("messages", (messages) => [
-            ...messages,
-            ...imageBlobs.map((blob) =>
-              createMessage(
-                "ASSISTANT",
-                "image",
-                "",
-                URL.createObjectURL(blob),
-              ),
-            ),
-          ]);
+          // Create and track URLs using ResourceManager
+          const imageMessages = imageBlobs.map((blob) => {
+            const url = resourceManager.getOrCreateURL(blob);
+            return createMessage("ASSISTANT", "image", "", url);
+          });
+
+          setState("messages", (messages) => [...messages, ...imageMessages]);
         }
       }
     }
@@ -185,5 +183,9 @@ export function createChatStore(
     sendMessage,
     setError: (error: string | null) => setState("error", error),
     setModel: (model: ChatModels) => setState("currentModel", model),
+    cleanup: () => {
+      // URL cleanup is now handled by ResourceManager in Services.cleanup()
+      // This method is kept for future cleanup needs (e.g., aborting requests)
+    },
   };
 }
