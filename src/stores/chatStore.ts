@@ -17,6 +17,9 @@ export function createChatStore(
   imageService: ImageService,
   imageStore: ReturnType<typeof createImageStore>,
 ) {
+  // Track created URLs for cleanup
+  const createdUrls = new Set<string>();
+
   const [state, setState] = createStore<ChatState>({
     messages: [],
     history: [],
@@ -133,17 +136,14 @@ export function createChatStore(
         if (imageBlobs) {
           imageStore.addImages(imageBlobs);
 
-          setState("messages", (messages) => [
-            ...messages,
-            ...imageBlobs.map((blob) =>
-              createMessage(
-                "ASSISTANT",
-                "image",
-                "",
-                URL.createObjectURL(blob),
-              ),
-            ),
-          ]);
+          // Create and track URLs for cleanup
+          const imageMessages = imageBlobs.map((blob) => {
+            const url = URL.createObjectURL(blob);
+            createdUrls.add(url);
+            return createMessage("ASSISTANT", "image", "", url);
+          });
+
+          setState("messages", (messages) => [...messages, ...imageMessages]);
         }
       }
     }
@@ -185,5 +185,12 @@ export function createChatStore(
     sendMessage,
     setError: (error: string | null) => setState("error", error),
     setModel: (model: ChatModels) => setState("currentModel", model),
+    cleanup: () => {
+      // Revoke all tracked URLs
+      for (const url of createdUrls) {
+        URL.revokeObjectURL(url);
+      }
+      createdUrls.clear();
+    },
   };
 }

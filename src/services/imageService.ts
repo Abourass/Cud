@@ -81,7 +81,7 @@ export class ImageService {
         this.client.connect();
         this.isConnected = true;
       } catch (error) {
-        console.error("Failed to connect to ComfyUI:", error);
+        consola.error("Failed to connect to ComfyUI:", error);
         throw error;
       }
     }
@@ -90,7 +90,6 @@ export class ImageService {
   async getLoRAs() {
     await this.ensureConnection();
     const LoRAs = await this.client.getLoRAs();
-    console.log("LoRAs:", LoRAs);
     return LoRAs;
   }
 
@@ -117,11 +116,8 @@ export class ImageService {
         for (const [lora, options] of this.currentLoRAs) {
           // Only add if not already active
           if (!this.activeLoRAs.has(lora)) {
-            consola.log("Adding new LoRA:", lora, options);
             pipe = pipe.lora(lora, options);
             this.activeLoRAs.add(lora);
-          } else {
-            consola.log("LoRA already active:", lora);
           }
         }
       }
@@ -132,7 +128,7 @@ export class ImageService {
         (img) => new Blob([img.data], { type: "image/png" }),
       );
     } catch (error) {
-      console.error("Failed to generate image:", error);
+      consola.error("Failed to generate image:", error);
       this.isConnected = false; // Reset connection state on error
       throw error;
     }
@@ -141,7 +137,6 @@ export class ImageService {
   // Add a cleanup method
   cleanup() {
     if (this.isConnected) {
-      console.log("Closing ComfyUI connection");
       this.client.close();
       this.isConnected = false;
     }

@@ -15,27 +15,19 @@ export const ImageGallery: Component = () => {
   const [isOpen, setIsOpen] = createSignal(false);
   const [imageUrls, setImageUrls] = createSignal<string[]>([]);
 
-  // Create and track URLs for blobs
-  const updateImageUrls = () => {
-    // Clean up old URLs
-    for (const url of imageUrls()) {
+  // Update URLs when images change
+  createEffect(() => {
+    // Clean up old URLs first
+    const oldUrls = imageUrls();
+    for (const url of oldUrls) {
       URL.revokeObjectURL(url);
     }
 
     // Create new URLs
-    const urls = imageStore.state.images.map((blob) =>
+    const newUrls = imageStore.state.images.map((blob) =>
       URL.createObjectURL(blob),
     );
-    setImageUrls(urls);
-  };
-
-  // Update URLs when images change
-  createEffect(() => {
-    if (imageStore.state.images.length) {
-      setImageUrls(
-        imageStore.state.images.map((blob) => URL.createObjectURL(blob)),
-      );
-    }
+    setImageUrls(newUrls);
   });
 
   // Cleanup URLs when component unmounts
@@ -57,8 +49,7 @@ export const ImageGallery: Component = () => {
               hover:bg-sky-700 transition-colors z-10 flex items-center"
         >
           Gallery{" "}
-          {imageStore.state.images.length > 0 &&
-            `(${imageStore.state.images.length})`}
+          {imageUrls().length > 0 && `(${imageUrls().length})`}
           <span
             class={`transform transition-transform ${isOpen() ? "rotate-180" : ""}`}
           >
@@ -72,35 +63,32 @@ export const ImageGallery: Component = () => {
               ${isOpen() ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"}
               overflow-hidden`}
         >
-          <Show when={imageStore.state.images.length > 0}>
+          <Show when={imageUrls().length > 0}>
             <div
               class="flex overflow-x-auto gap-4 px-4 snap-x snap-mandatory h-full
                   scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent
                   hover:scrollbar-thumb-gray-500"
             >
-              <For each={imageStore.state.images}>
-                {(blob, index) => {
-                  const imageUrl = URL.createObjectURL(blob);
-                  return (
-                    <div class="flex-none snap-center">
-                      <img
-                        src={imageUrl}
-                        alt={`Generated ${index() + 1}`}
-                        class="h-40 rounded-md cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setSelectedImage(imageUrl)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            setSelectedImage(imageUrl);
-                          }
-                        }}
-                      />
-                    </div>
-                  );
-                }}
+              <For each={imageUrls()}>
+                {(imageUrl, index) => (
+                  <div class="flex-none snap-center">
+                    <img
+                      src={imageUrl}
+                      alt={`Generated ${index() + 1}`}
+                      class="h-40 rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setSelectedImage(imageUrl)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedImage(imageUrl);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </For>
             </div>
 
-            <Show when={imageStore.state.images.length > 1}>
+            <Show when={imageUrls().length > 1}>
               <button
                 type="button"
                 class="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2

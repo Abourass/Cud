@@ -1,9 +1,10 @@
 export const config = {
-  apiUrl: "http://localhost:11434/api/chat",
-  imageApiUrl: "localhost:8188",
+  apiUrl:
+    import.meta.env.VITE_OLLAMA_API_URL || "http://localhost:11434/api/chat",
+  imageApiUrl: import.meta.env.VITE_COMFYUI_API_URL || "localhost:8188",
   defaults: {
-    model: "Socrates" as const,
-    resolution: "landscape" as const,
+    model: (import.meta.env.VITE_DEFAULT_MODEL as const) || ("Socrates" as const),
+    resolution: (import.meta.env.VITE_DEFAULT_RESOLUTION as const) || ("landscape" as const),
   },
   imagePresets: {
     selfie: {

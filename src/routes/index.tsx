@@ -76,7 +76,7 @@ export default function Home() {
   // Cleanup
   onCleanup(() => {
     imageStore.cleanup();
-    // chatStore.cleanup();
+    chatStore.cleanup();
   });
 
   return (
